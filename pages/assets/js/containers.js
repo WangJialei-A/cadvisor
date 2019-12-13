@@ -34,7 +34,7 @@ function humanizeMetric(num) {
 
 // Draw a table.
 function drawTable(
-    seriesTitles, titleTypes, data, elementId, numPages, sortIndex) {
+  seriesTitles, titleTypes, data, elementId, numPages, sortIndex) {
   var dataTable = new google.visualization.DataTable();
   for (var i = 0; i < seriesTitles.length; i++) {
     dataTable.addColumn(titleTypes[i], seriesTitles[i]);
@@ -42,7 +42,7 @@ function drawTable(
   dataTable.addRows(data);
   if (!(elementId in window.charts)) {
     window.charts[elementId] =
-        new google.visualization.Table(document.getElementById(elementId));
+      new google.visualization.Table(document.getElementById(elementId));
   }
 
   var cssClassNames = {
@@ -102,7 +102,7 @@ function drawLineChart(seriesTitles, data, elementId, unit) {
   // Create and draw the visualization.
   if (!(elementId in window.charts)) {
     window.charts[elementId] =
-        new google.visualization.LineChart(document.getElementById(elementId));
+      new google.visualization.LineChart(document.getElementById(elementId));
   }
 
   // TODO(vmarmol): Look into changing the view window to get a smoother
@@ -110,7 +110,7 @@ function drawLineChart(seriesTitles, data, elementId, unit) {
   var opts = {
     curveType: 'function',
     height: 300,
-    legend: {position: 'none'},
+    legend: { position: 'none' },
     focusTarget: 'category',
     vAxis: {
       title: unit,
@@ -175,23 +175,23 @@ function drawGauges(elementId, gauges) {
     yellowFrom: 75,
     yellowTo: 90,
     minorTicks: 5,
-    animation: {duration: 900, easing: 'linear'}
+    animation: { duration: 900, easing: 'linear' }
   };
   var chart =
-      new google.visualization.Gauge(document.getElementById(elementId));
+    new google.visualization.Gauge(document.getElementById(elementId));
   chart.draw(data, options);
 }
 
 // Get the machine info.
 function getMachineInfo(rootDir, callback) {
-  $.getJSON(rootDir + 'api/v1.0/machine', function(data) { callback(data); });
+  $.getJSON(rootDir + 'api/v1.0/machine', function (data) { callback(data); });
 }
 
 // Get ps info.
 function getProcessInfo(rootDir, containerName, callback) {
   $.getJSON(rootDir + 'api/v2.0/ps' + containerName)
-      .done(function(data) { callback(data); })
-      .fail(function(jqhxr, textStatus, error) { callback([]); });
+    .done(function (data) { callback(data); })
+    .fail(function (jqhxr, textStatus, error) { callback([]); });
 }
 
 // Get the container stats for the specified container.
@@ -204,11 +204,72 @@ function getStats(rootDir, containerName, callback) {
   });
 
   $.when(
-       $.post(rootDir + 'api/v1.0/containers' + containerName, request),
-       $.post(rootDir + 'api/v1.1/subcontainers' + containerName, request))
-      .done(function(containersResp, subcontainersResp) {
-        callback(containersResp[0], subcontainersResp[0]);
-      });
+    $.post(rootDir + 'api/v1.0/containers' + containerName, request),
+    $.post(rootDir + 'api/v1.1/subcontainers' + containerName, request))
+    .done(function (containersResp, subcontainersResp) {
+      callback(containersResp[0], subcontainersResp[0]);
+    });
+}
+
+// Draw the graph for CPU usage.
+function drawCycle(elementId, machineInfo, stats) {
+  if (stats.spec.has_cpu && !hasResource(stats, 'perf')) {
+    return;
+  }
+
+  var titles = ['Time', 'Total'];
+  var data = [];
+  for (var i = 1; i < stats.stats.length; i++) {
+    var cur = stats.stats[i];
+    var prev = stats.stats[i - 1];
+    var intervalNs = getInterval(cur.timestamp, prev.timestamp);
+
+    var elements = [];
+    elements.push(cur.timestamp);
+    elements.push(cur.perf.cycle);
+    data.push(elements);
+  }
+  drawLineChart(titles, data, elementId, 'Cycles');
+}
+
+function drawInstruction(elementId, machineInfo, stats) {
+  if (stats.spec.has_cpu && !hasResource(stats, 'perf')) {
+    return;
+  }
+
+  var titles = ['Time', 'Total'];
+  var data = [];
+  for (var i = 1; i < stats.stats.length; i++) {
+    var cur = stats.stats[i];
+    var prev = stats.stats[i - 1];
+    var intervalNs = getInterval(cur.timestamp, prev.timestamp);
+
+    var elements = [];
+    elements.push(cur.timestamp);
+    elements.push(cur.perf.instruction);
+    data.push(elements);
+  }
+  drawLineChart(titles, data, elementId, 'Instructions');
+}
+
+function drawCPI(elementId, machineInfo, stats) {
+  if (stats.spec.has_cpu && !hasResource(stats, 'perf')) {
+    return;
+  }
+
+  var titles = ['Time', 'Total'];
+  var data = [];
+  for (var i = 1; i < stats.stats.length; i++) {
+    var cur = stats.stats[i];
+    var prev = stats.stats[i - 1];
+    var intervalNs = getInterval(cur.timestamp, prev.timestamp);
+
+    var elements = [];
+    elements.push(cur.timestamp);
+    elements.push(cur.perf.cycle / cur.perf.instruction);
+    data.push(elements);
+  }
+  drawLineChart(titles, data, elementId, 'CPI');
 }
 
 // Draw the graph for CPU usage.
@@ -265,15 +326,15 @@ function drawCpuPerCoreUsage(elementId, machineInfo, stats) {
     var intervalNs = getInterval(cur.timestamp, prev.timestamp);
 
     if (cur.cpu.usage.per_cpu_usage == undefined) {
-        return;
+      return;
     }
 
     var elements = [];
     elements.push(cur.timestamp);
     for (var j = 0; j < machineInfo.num_cores; j++) {
       elements.push(
-          (cur.cpu.usage.per_cpu_usage[j] - prev.cpu.usage.per_cpu_usage[j]) /
-          intervalNs);
+        (cur.cpu.usage.per_cpu_usage[j] - prev.cpu.usage.per_cpu_usage[j]) /
+        intervalNs);
     }
     data.push(elements);
   }
@@ -297,7 +358,7 @@ function drawCpuUsageBreakdown(elementId, machineInfo, containerInfo) {
     elements.push(cur.timestamp);
     elements.push((cur.cpu.usage.user - prev.cpu.usage.user) / intervalNs);
     elements.push(
-        (cur.cpu.usage.system - prev.cpu.usage.system) / intervalNs);
+      (cur.cpu.usage.system - prev.cpu.usage.system) / intervalNs);
     data.push(elements);
   }
   drawLineChart(titles, data, elementId, 'Cores');
@@ -317,10 +378,10 @@ function getSubcontainerChartData(subcontainerInfos, dataFn) {
       // Generate a sparse array with timestamp at index zero and data point at
       // index i+1, to be used as a DataTable row.
       var elements = [cur.timestamp];
-      subcontainerInfos.forEach(function() {
+      subcontainerInfos.forEach(function () {
         elements.push(null);
       });
-      elements[i+1] = dataFn(cur, prev);
+      elements[i + 1] = dataFn(cur, prev);
       data.push(elements);
     }
   }
@@ -337,10 +398,10 @@ function drawCpuPerSubcontainerUsage(elementId, subcontainerInfos) {
   }
 
   var chartData = getSubcontainerChartData(subcontainerInfos,
-      function(cur, prev) {
-    var intervalNs = getInterval(cur.timestamp, prev.timestamp);
-    return (cur.cpu.usage.total - prev.cpu.usage.total) / intervalNs;
-  });
+    function (cur, prev) {
+      var intervalNs = getInterval(cur.timestamp, prev.timestamp);
+      return (cur.cpu.usage.total - prev.cpu.usage.total) / intervalNs;
+    });
   drawLineChart(chartData.titles, chartData.data, elementId, 'Cores');
 }
 
@@ -351,9 +412,9 @@ function drawMemoryPerSubcontainerUsage(elementId, subcontainerInfos) {
   }
 
   var chartData = getSubcontainerChartData(subcontainerInfos,
-      function(cur, prev) {
-    return cur.memory.usage / oneMegabyte;
-  });
+    function (cur, prev) {
+      return cur.memory.usage / oneMegabyte;
+    });
   drawLineChart(chartData.titles, chartData.data, elementId, 'Megabytes');
 }
 
@@ -371,7 +432,7 @@ function drawOverallUsage(elementId, machineInfo, containerInfo) {
 
     // Convert to millicores and take the percentage
     cpuUsage =
-        Math.round(((rawUsage / intervalNs) / machineInfo.num_cores) * 100);
+      Math.round(((rawUsage / intervalNs) / machineInfo.num_cores) * 100);
     if (cpuUsage > 100) {
       cpuUsage = 100;
     }
@@ -435,7 +496,7 @@ function drawMemoryUsage(elementId, machineInfo, containerInfo) {
   // Get the memory limit, saturate to the machine size.
   var memory_limit = machineInfo.memory_capacity;
   if (containerInfo.spec.memory.limit &&
-      (containerInfo.spec.memory.limit < memory_limit)) {
+    (containerInfo.spec.memory.limit < memory_limit)) {
     memory_limit = containerInfo.spec.memory.limit;
   }
 
@@ -447,9 +508,9 @@ function drawMemoryUsage(elementId, machineInfo, containerInfo) {
   $('#progress-hot-memory').width(hotMemory + '%');
   $('#progress-cold-memory').width(coldMemory + '%');
   $('#memory-text')
-      .text(
-          humanizeIEC(cur.memory.usage) + ' / ' + humanizeIEC(memory_limit) +
-          ' (' + totalMemory + '%)');
+    .text(
+      humanizeIEC(cur.memory.usage) + ' / ' + humanizeIEC(memory_limit) +
+      ' (' + totalMemory + '%)');
 
   drawLineChart(titles, data, elementId, 'Megabytes');
 }
@@ -474,12 +535,12 @@ function drawNetworkBytes(elementId, machineInfo, stats) {
   var interfaceIndex = -1;
   if (stats.stats.length > 0) {
     interfaceIndex = getNetworkInterfaceIndex(
-        window.cadvisor.network.interface, stats.stats[0].network.interfaces);
+      window.cadvisor.network.interface, stats.stats[0].network.interfaces);
   }
   if (interfaceIndex < 0) {
     console.log(
-        'Unable to find interface"', interfaceName, '" in ',
-        stats.stats.network);
+      'Unable to find interface"', interfaceName, '" in ',
+      stats.stats.network);
     return;
   }
 
@@ -493,13 +554,13 @@ function drawNetworkBytes(elementId, machineInfo, stats) {
     var elements = [];
     elements.push(cur.timestamp);
     elements.push(
-        (cur.network.interfaces[interfaceIndex].tx_bytes -
-         prev.network.interfaces[interfaceIndex].tx_bytes) /
-        intervalInSec);
+      (cur.network.interfaces[interfaceIndex].tx_bytes -
+        prev.network.interfaces[interfaceIndex].tx_bytes) /
+      intervalInSec);
     elements.push(
-        (cur.network.interfaces[interfaceIndex].rx_bytes -
-         prev.network.interfaces[interfaceIndex].rx_bytes) /
-        intervalInSec);
+      (cur.network.interfaces[interfaceIndex].rx_bytes -
+        prev.network.interfaces[interfaceIndex].rx_bytes) /
+      intervalInSec);
     data.push(elements);
   }
   drawLineChart(titles, data, elementId, 'Bytes per second');
@@ -515,12 +576,12 @@ function drawNetworkErrors(elementId, machineInfo, stats) {
   var interfaceIndex = -1;
   if (stats.stats.length > 0) {
     interfaceIndex = getNetworkInterfaceIndex(
-        window.cadvisor.network.interface, stats.stats[0].network.interfaces);
+      window.cadvisor.network.interface, stats.stats[0].network.interfaces);
   }
   if (interfaceIndex < 0) {
     console.log(
-        'Unable to find interface"', interfaceName, '" in ',
-        stats.stats.network);
+      'Unable to find interface"', interfaceName, '" in ',
+      stats.stats.network);
     return;
   }
 
@@ -534,13 +595,13 @@ function drawNetworkErrors(elementId, machineInfo, stats) {
     var elements = [];
     elements.push(cur.timestamp);
     elements.push(
-        (cur.network.interfaces[interfaceIndex].tx_errors -
-         prev.network.interfaces[interfaceIndex].tx_errors) /
-        intervalInSec);
+      (cur.network.interfaces[interfaceIndex].tx_errors -
+        prev.network.interfaces[interfaceIndex].tx_errors) /
+      intervalInSec);
     elements.push(
-        (cur.network.interfaces[interfaceIndex].rx_errors -
-         prev.network.interfaces[interfaceIndex].rx_errors) /
-        intervalInSec);
+      (cur.network.interfaces[interfaceIndex].rx_errors -
+        prev.network.interfaces[interfaceIndex].rx_errors) /
+      intervalInSec);
     data.push(elements);
   }
   drawLineChart(titles, data, elementId, 'Errors per second');
@@ -562,8 +623,8 @@ function drawFileSystemUsage(machineInfo, stats) {
     var els = window.cadvisor.fsUsage.elements[data.device];
     els.progressElement.width(totalUsage + '%');
     els.textElement.text(
-        humanizeMetric(data.usage) + ' / ' + humanizeMetric(data.capacity) +
-        ' (' + totalUsage + '%)');
+      humanizeMetric(data.usage) + ' / ' + humanizeMetric(data.capacity) +
+      ' (' + totalUsage + '%)');
   }
 }
 
@@ -591,9 +652,9 @@ function drawImages(images) {
     elements.push(tags.join(', '));
     elements.push(images[i].id.substr(0, 24));
     elements.push(
-        {v: images[i].virtual_size, f: humanizeIEC(images[i].virtual_size)});
+      { v: images[i].virtual_size, f: humanizeIEC(images[i].virtual_size) });
     var d = new Date(images[i].created * 1000);
-    elements.push({v: images[i].created, f: d.toLocaleString()});
+    elements.push({ v: images[i].created, f: d.toLocaleString() });
     data.push(elements);
   }
   drawTable(titles, titleTypes, data, 'docker-images', 30, sortIndex);
@@ -632,7 +693,7 @@ function drawProcesses(isRoot, rootDir, processInfo) {
       v: processInfo[i].percent_mem,
       f: processInfo[i].percent_mem.toFixed(2)
     });
-    elements.push({v: processInfo[i].rss, f: humanizeIEC(processInfo[i].rss)});
+    elements.push({ v: processInfo[i].rss, f: humanizeIEC(processInfo[i].rss) });
     elements.push({
       v: processInfo[i].virtual_size,
       f: humanizeIEC(processInfo[i].virtual_size)
@@ -644,8 +705,8 @@ function drawProcesses(isRoot, rootDir, processInfo) {
       var cgroup = processInfo[i].cgroup_path;
       // Use the raw cgroup link as it works for all containers.
       var cgroupLink = '<a href="' + rootDir + 'containers/' + cgroup + '">' +
-          cgroup.substr(0, 30) + ' </a>';
-      elements.push({v: cgroup, f: cgroupLink});
+        cgroup.substr(0, 30) + ' </a>';
+      elements.push({ v: cgroup, f: cgroupLink });
     }
     data.push(elements);
   }
@@ -667,16 +728,16 @@ function startFileSystemUsage(elementId, machineInfo, stats) {
   for (var i = 0; i < cur.filesystem.length; i++) {
     var data = cur.filesystem[i];
     el.append(
-        $('<div>')
-            .addClass('row col-sm-12')
-            .append($('<h4>').text('FS #' + (i + 1) + ': ' + data.device)));
+      $('<div>')
+        .addClass('row col-sm-12')
+        .append($('<h4>').text('FS #' + (i + 1) + ': ' + data.device)));
 
     var progressElement =
-        $('<div>').addClass('progress-bar progress-bar-danger');
+      $('<div>').addClass('progress-bar progress-bar-danger');
     el.append(
-        $('<div>')
-            .addClass('col-sm-9')
-            .append($('<div>').addClass('progress').append(progressElement)));
+      $('<div>')
+        .addClass('col-sm-9')
+        .append($('<div>').addClass('progress').append(progressElement)));
 
     var textElement = $('<div>').addClass('col-sm-3');
     el.append(textElement);
@@ -706,7 +767,7 @@ function stepExecute(steps) {
   step();
 
   // Schedule the next step.
-  setTimeout(function() { stepExecute(steps); }, 0);
+  setTimeout(function () { stepExecute(steps); }, 0);
 }
 
 // Draw all the charts on the page.
@@ -714,61 +775,72 @@ function drawCharts(machineInfo, containerInfo, subcontainers) {
   var steps = [];
 
   if (containerInfo.spec.has_cpu || containerInfo.spec.has_memory) {
-    steps.push(function() {
+    steps.push(function () {
       drawOverallUsage('usage-gauge', machineInfo, containerInfo);
     });
   }
 
+  // Perf Counter
+  steps.push(function () {
+    drawCPI('cpi-chart', machineInfo, containerInfo);
+  });
+  steps.push(function () {
+    drawCycle('cycle-chart', machineInfo, containerInfo);
+  });
+  steps.push(function () {
+    drawInstruction('instruction-chart', machineInfo, containerInfo);
+  });
+
   // CPU.
   if (containerInfo.spec.has_cpu) {
-    steps.push(function() {
+    steps.push(function () {
       drawCpuTotalUsage('cpu-total-usage-chart', machineInfo, containerInfo);
     });
     // TODO(rjnagal): Re-enable CPU Load after understanding resource usage.
     // steps.push(function() {
     // 	drawCpuLoad("cpu-load-chart", machineInfo, containerInfo);
     // });
-    steps.push(function() {
+    steps.push(function () {
       drawCpuPerCoreUsage(
-          'cpu-per-core-usage-chart', machineInfo, containerInfo);
+        'cpu-per-core-usage-chart', machineInfo, containerInfo);
     });
-    steps.push(function() {
+    steps.push(function () {
       drawCpuUsageBreakdown(
-          'cpu-usage-breakdown-chart', machineInfo, containerInfo);
+        'cpu-usage-breakdown-chart', machineInfo, containerInfo);
     });
   }
 
   // Memory.
   if (containerInfo.spec.has_memory) {
-    steps.push(function() {
+    steps.push(function () {
       drawMemoryUsage('memory-usage-chart', machineInfo, containerInfo);
     });
   }
 
   // Network.
   if (containerInfo.spec.has_network) {
-    steps.push(function() {
+    steps.push(function () {
       drawNetworkBytes('network-bytes-chart', machineInfo, containerInfo);
     });
-    steps.push(function() {
+    steps.push(function () {
       drawNetworkErrors('network-errors-chart', machineInfo, containerInfo);
     });
   }
 
   // Filesystem.
   if (containerInfo.spec.has_filesystem) {
-    steps.push(function() { drawFileSystemUsage(machineInfo, containerInfo); });
+    steps.push(function () { drawFileSystemUsage(machineInfo, containerInfo); });
   }
 
   // Custom Metrics
   if (containerInfo.spec.has_custom_metrics) {
-    steps.push(function() {
+    steps.push(function () {
       getCustomMetrics(
-          window.cadvisor.rootDir, window.cadvisor.containerName,
-          function(metricsInfo) {
-            drawCustomMetrics(
-              'custom-metrics-chart', containerInfo, metricsInfo);
-          });
+        window.cadvisor.rootDir, window.cadvisor.containerName,
+        function (metricsInfo) {
+          drawCustomMetrics(
+            'custom-metrics-chart', containerInfo, metricsInfo);
+        });
     });
   }
 
@@ -776,20 +848,20 @@ function drawCharts(machineInfo, containerInfo, subcontainers) {
   var subcontainerInfos = filterSubcontainers(containerInfo, subcontainers);
   if (subcontainerInfos.length > 0) {
     if (hasResourceForAll(subcontainerInfos, 'cpu')) {
-      steps.push(function() {
+      steps.push(function () {
         var displayCount = $('#cpu-per-subcontainer-display-count').val();
         drawCpuPerSubcontainerUsage(
-            'cpu-per-subcontainer-usage-chart',
-            sliceByCpu(subcontainerInfos, displayCount));
+          'cpu-per-subcontainer-usage-chart',
+          sliceByCpu(subcontainerInfos, displayCount));
       });
     }
 
     if (hasResourceForAll(subcontainerInfos, 'memory')) {
-      steps.push(function() {
+      steps.push(function () {
         var displayCount = $('#memory-per-subcontainer-display-count').val();
         drawMemoryPerSubcontainerUsage(
-            'memory-per-subcontainer-usage-chart',
-            sliceByMemory(subcontainerInfos, displayCount));
+          'memory-per-subcontainer-usage-chart',
+          sliceByMemory(subcontainerInfos, displayCount));
       });
     }
   }
@@ -799,7 +871,7 @@ function drawCharts(machineInfo, containerInfo, subcontainers) {
 
 // Return an slice of subcontainers sorted by CPU, with at most 'count' entries.
 function sliceByCpu(subcontainerInfos, count) {
-  subcontainerInfos.sort(function(a, b) {
+  subcontainerInfos.sort(function (a, b) {
     if (a.averages.cpu > b.averages.cpu) {
       return -1;
     } else if (a.averages.cpu < b.averages.cpu) {
@@ -809,13 +881,13 @@ function sliceByCpu(subcontainerInfos, count) {
     }
   });
   return subcontainerInfos.slice(0, Math.min(subcontainerInfos.length, count))
-      .sort(compareByName);
+    .sort(compareByName);
 }
 
 // Return an slice of subcontainers sorted by memory, with at most 'count'
 // entries.
 function sliceByMemory(subcontainerInfos, count) {
-  subcontainerInfos.sort(function(a, b) {
+  subcontainerInfos.sort(function (a, b) {
     if (a.averages.memory > b.averages.memory) {
       return -1;
     } else if (a.averages.memory < b.averages.memory) {
@@ -825,7 +897,7 @@ function sliceByMemory(subcontainerInfos, count) {
     }
   });
   return subcontainerInfos.slice(0, Math.min(subcontainerInfos.length, count))
-      .sort(compareByName);
+    .sort(compareByName);
 }
 
 // Return sort comparitor based on subcontroller name.
@@ -843,7 +915,7 @@ function compareByName(subA, subB) {
 function getSubcontainerAverages(subcontainer) {
   var cpuSum = 0;
   var memorySum = 0;
-  subcontainer.stats.forEach(function(stat) {
+  subcontainer.stats.forEach(function (stat) {
     cpuSum += stat.cpu.usage.total;
     memorySum += stat.memory.usage / oneMegabyte;
   });
@@ -856,18 +928,18 @@ function getSubcontainerAverages(subcontainer) {
 // Return a list of immediate subcontainers, including metric averages.
 function filterSubcontainers(containerInfo, subcontainers) {
   if (!containerInfo.subcontainers ||
-      containerInfo.subcontainers.length === 0 ||
-      !subcontainers) {
+    containerInfo.subcontainers.length === 0 ||
+    !subcontainers) {
     return [];
   }
 
   var subcontainerNames = {};
-  containerInfo.subcontainers.forEach(function(subcontainer) {
+  containerInfo.subcontainers.forEach(function (subcontainer) {
     subcontainerNames[subcontainer.name] = subcontainer.name;
   });
 
   var subcontainerInfos = [];
-  subcontainers.forEach(function(subcontainer) {
+  subcontainers.forEach(function (subcontainer) {
     if (subcontainerNames[subcontainer.name] !== undefined) {
       subcontainer.averages = getSubcontainerAverages(subcontainer);
       subcontainerInfos.push(subcontainer);
@@ -879,9 +951,9 @@ function filterSubcontainers(containerInfo, subcontainers) {
 
 function setNetwork(interfaceName) {
   $('#network-selection-text')
-      .empty()
-      .append($('<span>').text('Interface: '))
-      .append($('<b>').text(interfaceName));
+    .empty()
+    .append($('<span>').text('Interface: '))
+    .append($('<b>').text(interfaceName));
   window.cadvisor.network.interface = interfaceName;
 
   // Draw the new stats.
@@ -891,9 +963,9 @@ function setNetwork(interfaceName) {
 // Creates the network selection dropdown.
 function startNetwork(selectionElement, containerInfo) {
   if (!hasResource(containerInfo, 'network') ||
-      containerInfo.stats.length == 0 ||
-      !containerInfo.stats[0].network.interfaces ||
-      containerInfo.stats[0].network.interfaces.length == 0) {
+    containerInfo.stats.length == 0 ||
+    !containerInfo.stats[0].network.interfaces ||
+    containerInfo.stats[0].network.interfaces.length == 0) {
     return;
   }
 
@@ -905,12 +977,12 @@ function startNetwork(selectionElement, containerInfo) {
   for (var i = 0; i < containerInfo.stats[0].network.interfaces.length; i++) {
     var interfaceName = containerInfo.stats[0].network.interfaces[i].name;
     el.append($('<li>')
-                  .attr('role', 'presentation')
-                  .append($('<a>')
-                              .attr('role', 'menuitem')
-                              .attr('tabindex', -1)
-                              .click(setNetwork.bind(null, interfaceName))
-                              .text(interfaceName)));
+      .attr('role', 'presentation')
+      .append($('<a>')
+        .attr('role', 'menuitem')
+        .attr('tabindex', -1)
+        .click(setNetwork.bind(null, interfaceName))
+        .text(interfaceName)));
   }
   setNetwork(containerInfo.stats[0].network.interfaces[0].name);
 }
@@ -919,24 +991,24 @@ function startNetwork(selectionElement, containerInfo) {
 function refreshStats() {
   var machineInfo = window.cadvisor.machineInfo;
   getStats(
-      window.cadvisor.rootDir, window.cadvisor.containerName,
-      function(containerInfo, subcontainers) {
-        if (window.cadvisor.firstRun) {
-          window.cadvisor.firstRun = false;
+    window.cadvisor.rootDir, window.cadvisor.containerName,
+    function (containerInfo, subcontainers) {
+      if (window.cadvisor.firstRun) {
+        window.cadvisor.firstRun = false;
 
-          if (containerInfo.spec.has_filesystem) {
-            startFileSystemUsage(
-                'filesystem-usage', machineInfo, containerInfo);
-          }
-          if (containerInfo.spec.has_network) {
-            startNetwork('network-selection', containerInfo);
-          }
-          if (containerInfo.spec.has_custom_metrics) {
-            startCustomMetrics('custom-metrics-chart', containerInfo);
-          }
+        if (containerInfo.spec.has_filesystem) {
+          startFileSystemUsage(
+            'filesystem-usage', machineInfo, containerInfo);
         }
-        drawCharts(machineInfo, containerInfo, subcontainers);
-      });
+        if (containerInfo.spec.has_network) {
+          startNetwork('network-selection', containerInfo);
+        }
+        if (containerInfo.spec.has_custom_metrics) {
+          startCustomMetrics('custom-metrics-chart', containerInfo);
+        }
+      }
+      drawCharts(machineInfo, containerInfo, subcontainers);
+    });
 }
 
 function addAllLabels(containerInfo, metricsInfo) {
@@ -956,13 +1028,13 @@ function addAllLabels(containerInfo, metricsInfo) {
         }
 
         $('#' + metricName + '_labels')
-            .append(
-                $('<li>')
-                    .attr('role', 'presentation')
-                    .append($('<a>')
-                                .attr('role', 'menuitem')
-                                .click(setLabel.bind(null, metricName, label))
-                                .text(label)));
+          .append(
+            $('<li>')
+              .attr('role', 'presentation')
+              .append($('<a>')
+                .attr('role', 'menuitem')
+                .click(setLabel.bind(null, metricName, label))
+                .text(label)));
         if (firstLabel) {
           firstLabel = false;
           setLabel(metricName, label);
@@ -981,9 +1053,9 @@ function getMetricIndex(metricName) {
 
 function setLabel(metric, label) {
   $('#' + metric + '-selection-text')
-      .empty()
-      .append($('<span>').text('Label: '))
-      .append($('<b>').text(label));
+    .empty()
+    .append($('<span>').text('Label: '))
+    .append($('<b>').text(label));
 
   index = getMetricIndex(metric);
   if (index == -1) {
@@ -1011,16 +1083,16 @@ function startCustomMetrics(elementId, containerInfo) {
     for (i = 0; i < window.cadvisor.maxCustomMetrics; i++) {
       metricName = metricSpec[i].name;
       var divText =
-          '<div class=\'dropdown\'> <button class=\'btn btn-default' +
-          ' dropdown-toggle\' type=\'button\' id=\'button-' + metricName;
+        '<div class=\'dropdown\'> <button class=\'btn btn-default' +
+        ' dropdown-toggle\' type=\'button\' id=\'button-' + metricName;
       divText +=
-          '\' data-toggle=\'dropdown\' aria-haspopup=\'true\'' +
-          ' aria-expanded=\'false\'>';
+        '\' data-toggle=\'dropdown\' aria-haspopup=\'true\'' +
+        ' aria-expanded=\'false\'>';
       divText += '<span id=\'' + metricName +
-          '-selection-text\'></span> <span class=\'caret\'></span> </button>';
+        '-selection-text\'></span> <span class=\'caret\'></span> </button>';
       divText += '<ul id=\'' + metricName +
-          '_labels\' class=\'dropdown-menu\' role=\'menu\'' +
-          ' aria-labelledby=\'button-' + metricName + '\'> </ul> </div>';
+        '_labels\' class=\'dropdown-menu\' role=\'menu\'' +
+        ' aria-labelledby=\'button-' + metricName + '\'> </ul> </div>';
       divText += '<div id=\'' + elementId + '-' + metricName + '\'> </div>';
       el.append($(divText));
     }
@@ -1032,8 +1104,8 @@ function startCustomMetrics(elementId, containerInfo) {
 
 function getCustomMetrics(rootDir, containerName, callback) {
   $.getJSON(rootDir + 'api/v2.0/appmetrics/' + containerName)
-      .done(function(data) { callback(data); })
-      .fail(function(jqhxr, textStatus, error) { callback([]); });
+    .done(function (data) { callback(data); })
+    .fail(function (jqhxr, textStatus, error) { callback([]); });
 }
 
 function drawCustomMetrics(elementId, containerInfo, metricsInfo) {
@@ -1090,18 +1162,18 @@ function startPage(containerName, hasCpu, hasMemory, rootDir, isRoot) {
   window.cadvisor.maxCustomMetrics = 10;
 
   // Draw process information at start and refresh every 60s.
-  getProcessInfo(rootDir, containerName, function(processInfo) {
+  getProcessInfo(rootDir, containerName, function (processInfo) {
     drawProcesses(isRoot, rootDir, processInfo);
   });
-  setInterval(function() {
-    getProcessInfo(rootDir, containerName, function(processInfo) {
+  setInterval(function () {
+    getProcessInfo(rootDir, containerName, function (processInfo) {
       drawProcesses(isRoot, rootDir, processInfo);
     });
   }, 60000);
 
   // Get machine info, then get the stats every 1s.
-  getMachineInfo(rootDir, function(machineInfo) {
+  getMachineInfo(rootDir, function (machineInfo) {
     window.cadvisor.machineInfo = machineInfo;
-    setInterval(function() { refreshStats(); }, 1000);
+    setInterval(function () { refreshStats(); }, 1000);
   });
 }

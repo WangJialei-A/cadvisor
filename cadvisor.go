@@ -273,6 +273,7 @@ func toIncludedMetrics(ignoreMetrics container.MetricSet) container.MetricSet {
 		container.AcceleratorUsageMetrics,
 		container.AppMetrics,
 		container.ProcessMetrics,
+		container.PerfMetrics,
 	}
 	for _, metric := range allMetrics {
 		if !ignoreMetrics.Has(metric) {

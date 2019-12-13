@@ -573,6 +573,7 @@ func (c *containerData) updateLoad(newLoad uint64) {
 
 func (c *containerData) updateStats() error {
 	stats, statsErr := c.handler.GetStats()
+	//	fmt.Printf("stats: %+v\n", stats)
 	if statsErr != nil {
 		// Ignore errors if the container is dead.
 		if !c.handler.Exists() {
