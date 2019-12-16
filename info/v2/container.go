@@ -19,7 +19,7 @@ import (
 
 	// TODO(rjnagal): Remove dependency after moving all stats structs from v1.
 	// using v1 now for easy conversion.
-	"github.com/google/cadvisor/info/v1"
+	v1 "github.com/google/cadvisor/info/v1"
 )
 
 const (
@@ -156,6 +156,8 @@ type ContainerStats struct {
 	Load *v1.LoadStats `json:"load_stats,omitempty"`
 	// Metrics for Accelerators. Each Accelerator corresponds to one element in the array.
 	Accelerators []v1.AcceleratorStats `json:"accelerators,omitempty"`
+	// Perf statistics
+	Perf *v1.PerfStats
 	// Custom Metrics
 	CustomMetrics map[string][]v1.MetricVal `json:"custom_metrics,omitempty"`
 }

@@ -58,7 +58,7 @@ var legacySubsystems = subsystemSet{
 	&fs.PidsGroup{},
 	&fs.BlkioGroup{},
 	&fs.HugetlbGroup{},
-	&fs.PerfEventGroup{},
+	fs.NewPerfEventGroup(),
 	&fs.FreezerGroup{},
 	&fs.NetPrioGroup{},
 	&fs.NetClsGroup{},

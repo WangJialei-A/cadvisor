@@ -57,6 +57,14 @@ type MemoryStats struct {
 	Stats map[string]uint64 `json:"stats,omitempty"`
 }
 
+type PerfStats struct {
+	Cycle       uint64 `json:"cycle,omitempty"`
+	Instruction uint64 `json:"instruction,omitempty"`
+	CacheMiss   uint64 `json:"cache_miss,omitempty"`
+	L3MissRequests uint64 `json:"l3_miss_requests,omitempty"`
+	L3MissCycles uint64 `json:"l3_miss_cycles,omitempty"`
+}
+
 type PidsStats struct {
 	// number of pids in the cgroup
 	Current uint64 `json:"current,omitempty"`
@@ -99,6 +107,7 @@ type Stats struct {
 	BlkioStats  BlkioStats  `json:"blkio_stats,omitempty"`
 	// the map is in the format "size of hugepage: stats of the hugepage"
 	HugetlbStats map[string]HugetlbStats `json:"hugetlb_stats,omitempty"`
+	PerfStats    PerfStats               `json:"perf_stats,omitempty"`
 }
 
 func NewStats() *Stats {

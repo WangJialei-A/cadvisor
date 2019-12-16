@@ -43,6 +43,11 @@ type Handler struct {
 	pid             int
 	includedMetrics container.MetricSet
 	pidMetricsCache map[int]*info.CpuSchedstat
+
+	fds             [][]uintptr
+	perfLastValue   []uint64
+	perfLastEnabled []uint64
+	perfLastRunning []uint64
 }
 
 var whitelistedUlimits = [...]string{"max_open_files"}
@@ -686,6 +691,16 @@ func setThreadsStats(s *cgroups.Stats, ret *info.ContainerStats) {
 
 }
 
+func setPerfMetrics(s *cgroups.Stats, ret *info.ContainerStats) {
+	if s != nil {
+		ret.Perf.Cycle = s.PerfStats.Cycle
+		ret.Perf.Instruction = s.PerfStats.Instruction
+		ret.Perf.CacheMiss = s.PerfStats.CacheMiss
+		ret.Perf.L3MissRequests = s.PerfStats.L3MissRequests
+		ret.Perf.L3MissCycles = s.PerfStats.L3MissCycles
+	}
+}
+
 func newContainerStats(libcontainerStats *libcontainer.Stats, includedMetrics container.MetricSet) *info.ContainerStats {
 	ret := &info.ContainerStats{
 		Timestamp: time.Now(),
@@ -697,6 +712,9 @@ func newContainerStats(libcontainerStats *libcontainer.Stats, includedMetrics co
 			setDiskIoStats(s, ret)
 		}
 		setMemoryStats(s, ret)
+		if includedMetrics.Has(container.PerfMetrics) {
+			setPerfMetrics(s, ret)
+		}
 	}
 	if len(libcontainerStats.Interfaces) > 0 {
 		setNetworkStats(libcontainerStats, ret)

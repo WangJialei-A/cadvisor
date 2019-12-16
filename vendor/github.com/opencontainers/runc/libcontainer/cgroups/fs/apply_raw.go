@@ -29,7 +29,7 @@ var (
 		&HugetlbGroup{},
 		&NetClsGroup{},
 		&NetPrioGroup{},
-		&PerfEventGroup{},
+		NewPerfEventGroup(),
 		&FreezerGroup{},
 		&NameGroup{GroupName: "name=systemd", Join: true},
 	}

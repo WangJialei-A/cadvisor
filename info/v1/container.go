@@ -590,6 +590,14 @@ type ProcessStats struct {
 	Ulimits []UlimitSpec `json:"ulimits,omitempty"`
 }
 
+type PerfStats struct {
+	Cycle          uint64 `json:"cycle,omitempty"`
+	Instruction    uint64 `json:"instruction,omitempty"`
+	CacheMiss      uint64 `json:"cache_miss,omitempty"`
+	L3MissCycles   uint64 `json:"l3_miss_cycles,omitempty"`
+	L3MissRequests uint64 `json:"l3_miss_requests,omitempty"`
+}
+
 type ContainerStats struct {
 	// The time of this stat point.
 	Timestamp time.Time    `json:"timestamp"`
@@ -597,6 +605,7 @@ type ContainerStats struct {
 	DiskIo    DiskIoStats  `json:"diskio,omitempty"`
 	Memory    MemoryStats  `json:"memory,omitempty"`
 	Network   NetworkStats `json:"network,omitempty"`
+	Perf      PerfStats    `json:"perf,omitempty"`
 
 	// Filesystem statistics
 	Filesystem []FsStats `json:"filesystem,omitempty"`
